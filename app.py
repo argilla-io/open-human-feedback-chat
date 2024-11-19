@@ -7,9 +7,7 @@ DATASET_REPO_ID = "username/dataset-name"
 
 def add_user_message(history, message):
     """Add a user message to the chat history"""
-    if message["text"] is not None:
-        content = message["text"]
-        history.append(gr.ChatMessage(role="user", content=content))
+    history.append(gr.ChatMessage(role="user", content=message))
     return history, gr.Textbox(value=None, interactive=False)
 
 
@@ -87,7 +85,8 @@ with gr.Blocks(
     chat_input = gr.Textbox(
         interactive=True,
         placeholder="Enter a message...",
-        show_label=True,
+        show_label=False,
+        submit_btn=True,
     )
 
     chat_msg = chat_input.submit(
