@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 
 import gradio as gr
@@ -47,11 +48,13 @@ def wrangle_like_data(x: gr.LikeData, history) -> DataFrame:
     return history, DataFrame(data=output_data)
 
 
-def submit_conversation(dataframe):
+def submit_conversation(dataframe, session_id):
     """ "Submit the conversation to dataset repo"""
     conversation_data = {
         "conversation": dataframe.to_dict(orient="records"),
         "timestamp": datetime.now().isoformat(),
+        "session_id": session_id,
+        "conversation_id": str(uuid.uuid4()),
     }
     save_feedback(input_object=conversation_data)
     gr.Info(f"Submitted {len(dataframe)} messages to the dataset")
@@ -79,6 +82,11 @@ with gr.Blocks(
     ##############################
     # Chatbot
     ##############################
+    session_id = gr.Textbox(
+        interactive=False,
+        value=str(uuid.uuid4()),
+        visible=False,
+    )
 
     chatbot = gr.Chatbot(
         elem_id="chatbot",
@@ -120,8 +128,13 @@ with gr.Blocks(
         value="Submit conversation",
     ).click(
         fn=submit_conversation,
-        inputs=[dataframe],
+        inputs=[dataframe, session_id],
         outputs=[dataframe, chatbot],
+    )
+    demo.load(
+        lambda: str(uuid.uuid4()),
+        inputs=[],
+        outputs=[session_id],
     )
 
 demo.launch()
