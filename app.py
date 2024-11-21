@@ -33,18 +33,18 @@ def wrangle_like_data(x: gr.LikeData, history) -> DataFrame:
     liked_index = x.index[0]
 
     output_data = []
-
     for idx, message in enumerate(history):
         if idx == liked_index:
-            message["liked"] = x.liked
-        else:
-            message["liked"] = False
+            message["metadata"] = {"title": "liked"}
 
-        del message["metadata"]
+        liked = True if message["metadata"].get("title") == "liked" else False
+        message["liked"] = liked
 
-        output_data.append(dict(message))
+        output_data.append(
+            dict([(k, v) for k, v in message.items() if k != "metadata"])
+        )
 
-    return DataFrame(data=output_data)
+    return history, DataFrame(data=output_data)
 
 
 def submit_conversation(dataframe):
@@ -55,6 +55,7 @@ def submit_conversation(dataframe):
     }
     save_feedback(input_object=conversation_data)
     gr.Info(f"Submitted {len(dataframe)} messages to the dataset")
+    return (gr.Dataframe(value=None, interactive=False), [])
 
 
 with gr.Blocks(
@@ -75,7 +76,6 @@ with gr.Blocks(
     }
     """
 ) as demo:
-
     ##############################
     # Chatbot
     ##############################
@@ -112,7 +112,7 @@ with gr.Blocks(
     chatbot.like(
         fn=wrangle_like_data,
         inputs=[chatbot],
-        outputs=[dataframe],
+        outputs=[chatbot, dataframe],
         like_user_message=False,
     )
 
@@ -121,7 +121,7 @@ with gr.Blocks(
     ).click(
         fn=submit_conversation,
         inputs=[dataframe],
-        outputs=None,
+        outputs=[dataframe, chatbot],
     )
 
 demo.launch()

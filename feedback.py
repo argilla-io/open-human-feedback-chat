@@ -4,7 +4,9 @@ from pathlib import Path
 
 from huggingface_hub import CommitScheduler
 
-feedback_file = Path("user_feedback/") / f"data_{uuid.uuid4()}.json"
+SESSION_ID = str(uuid.uuid4())
+
+feedback_file = Path("user_feedback/") / f"data_{SESSION_ID}.json"
 feedback_folder = feedback_file.parent
 
 scheduler = CommitScheduler(
@@ -22,5 +24,7 @@ def save_feedback(input_object: dict) -> None:
     """
     with scheduler.lock:
         with feedback_file.open(mode="a") as f:
+            input_object["session_id"] = SESSION_ID
+            input_object["conversation_id"] = str(uuid.uuid4())
             f.write(json.dumps(obj=input_object))
             f.write("\n")
