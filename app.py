@@ -1,8 +1,9 @@
+from datetime import datetime
+
 import gradio as gr
-from datasets import Dataset
 from pandas import DataFrame
 
-DATASET_REPO_ID = "username/dataset-name"
+from feedback import save_feedback
 
 
 def add_user_message(history, message):
@@ -39,18 +40,21 @@ def wrangle_like_data(x: gr.LikeData, history) -> DataFrame:
         else:
             message["liked"] = False
 
-        output_data.append(dict(message))
-
         del message["metadata"]
+
+        output_data.append(dict(message))
 
     return DataFrame(data=output_data)
 
 
 def submit_conversation(dataframe):
     """ "Submit the conversation to dataset repo"""
-    print(dataframe)
-    # TODO: Submit the conversation to the dataset repo
-    # Dataset.from_pandas(dataframe).push_to_hub(repo_id=DATASET_REPO_ID)
+    conversation_data = {
+        "conversation": dataframe.to_dict(orient="records"),
+        "timestamp": datetime.now().isoformat(),
+    }
+    save_feedback(input_object=conversation_data)
+    gr.Info(f"Submitted {len(dataframe)} messages to the dataset")
 
 
 with gr.Blocks(
@@ -112,6 +116,12 @@ with gr.Blocks(
         like_user_message=False,
     )
 
-    gr.Button().click(fn=submit_conversation, inputs=[dataframe], outputs=None)
+    gr.Button(
+        value="Submit conversation",
+    ).click(
+        fn=submit_conversation,
+        inputs=[dataframe],
+        outputs=None,
+    )
 
 demo.launch()
