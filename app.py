@@ -8,9 +8,11 @@ from feedback import save_feedback
 
 
 def add_user_message(history, message):
-    """Add a user message to the chat history"""
-    history.append(gr.ChatMessage(role="user", content=message))
-    return history, gr.Textbox(value=None, interactive=False)
+    for x in message["files"]:
+        history.append({"role": "user", "content": {"path": x}})
+    if message["text"] is not None:
+        history.append({"role": "user", "content": message["text"]})
+    return history, gr.MultimodalTextbox(value=None, interactive=False)
 
 
 def respond_system_message(history: list):
@@ -94,9 +96,10 @@ with gr.Blocks(
         type="messages",
     )
 
-    chat_input = gr.Textbox(
+    chat_input = gr.MultimodalTextbox(
         interactive=True,
-        placeholder="Enter a message...",
+        file_count="multiple",
+        placeholder="Enter message or upload file...",
         show_label=False,
         submit_btn=True,
     )
