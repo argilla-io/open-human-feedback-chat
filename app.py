@@ -1,10 +1,15 @@
+import base64
+import os
 import uuid
 from datetime import datetime
 
 import gradio as gr
+from huggingface_hub import InferenceClient
 from pandas import DataFrame
 
 from feedback import save_feedback
+
+client = InferenceClient(token=os.getenv("HF_TOKEN"))
 
 
 def add_user_message(history, message):
@@ -15,17 +20,56 @@ def add_user_message(history, message):
     return history, gr.MultimodalTextbox(value=None, interactive=False)
 
 
+def _format_history_as_messages(history: list):
+    messages = []
+    current_role = None
+    current_message_content = []
+
+    for entry in history:
+        content = entry["content"]
+
+        if entry["role"] != current_role:
+            if current_role is not None:
+                messages.append(
+                    {"role": current_role, "content": current_message_content}
+                )
+            current_role = entry["role"]
+            current_message_content = []
+
+        if isinstance(content, tuple):  # Handle file paths
+            for path in content:
+                with open(path, "rb") as image_file:
+                    image_bytes = image_file.read()
+                image_base64 = base64.b64encode(image_bytes).decode("utf-8")
+                data_uri = f"data:image/png;base64,{image_base64}"
+                data_uri = "df"
+                current_message_content.append(
+                    {"type": "image_url", "image_url": {"url": data_uri}}
+                )
+        elif isinstance(content, str):  # Handle text
+            current_message_content.append({"type": "text", "text": content})
+
+    if current_role is not None:
+        messages.append({"role": current_role, "content": current_message_content})
+
+    return messages
+
+
 def respond_system_message(history: list):
     """Respond to the user message with a system message"""
 
-    ##############################
-    # FAKE RESPONSE
-    response = "**That's cool!**"
-    ##############################
+    messages = _format_history_as_messages(history)
 
+    response = client.chat.completions.create(
+        model=os.getenv("model", "meta-llama/Llama-3.2-11B-Vision-Instruct"),
+        messages=messages,
+        max_tokens=2000,
+        stream=False,
+    )
+    content = response.choices[0].message.content
     # TODO: Add a response to the user message
 
-    message = gr.ChatMessage(role="assistant", content=response)
+    message = gr.ChatMessage(role="assistant", content=content)
     history.append(message)
     return history
 
