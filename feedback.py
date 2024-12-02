@@ -10,7 +10,7 @@ feedback_file = Path("user_feedback/") / f"data_{APP_INSTANCE_ID}.json"
 feedback_folder = feedback_file.parent
 
 scheduler = CommitScheduler(
-    repo_id="burtenshaw/ohp-test-conversation",
+    repo_id="ohp-test-conversation",
     repo_type="dataset",
     folder_path=feedback_folder,
     path_in_repo="data",

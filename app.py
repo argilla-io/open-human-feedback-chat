@@ -1,7 +1,9 @@
-import base64
 import os
 import uuid
+from base64 import b64encode
 from datetime import datetime
+from mimetypes import guess_type
+from pathlib import Path
 
 import gradio as gr
 from huggingface_hub import InferenceClient
@@ -9,7 +11,13 @@ from pandas import DataFrame
 
 from feedback import save_feedback
 
-client = InferenceClient(token=os.getenv("HF_TOKEN"))
+client = InferenceClient(
+    token=os.getenv("HF_TOKEN"),
+    model=os.getenv("MODEL", "meta-llama/Llama-3.2-11B-Vision-Instruct")
+    if not os.getenv("BASE_URL")
+    else None,
+    base_url=os.getenv("BASE_URL"),
+)
 
 
 def add_user_message(history, message):
@@ -38,11 +46,7 @@ def _format_history_as_messages(history: list):
 
         if isinstance(content, tuple):  # Handle file paths
             for path in content:
-                with open(path, "rb") as image_file:
-                    image_bytes = image_file.read()
-                image_base64 = base64.b64encode(image_bytes).decode("utf-8")
-                data_uri = f"data:image/png;base64,{image_base64}"
-                data_uri = "df"
+                data_uri = _convert_path_to_data_uri(path)
                 current_message_content.append(
                     {"type": "image_url", "image_url": {"url": data_uri}}
                 )
@@ -55,13 +59,33 @@ def _format_history_as_messages(history: list):
     return messages
 
 
-def respond_system_message(history: list):
+def _convert_path_to_data_uri(path) -> str:
+    mime_type, _ = guess_type(path)
+    with open(path, "rb") as image_file:
+        data = image_file.read()
+        data_uri = f"data:{mime_type};base64," + b64encode(data).decode("utf-8")
+    return data_uri
+
+
+def _is_file_safe(path) -> bool:
+    try:
+        return Path(path).is_file()
+    except Exception:
+        return False
+
+
+def _process_content(content) -> str | list[str]:
+    if isinstance(content, str) and _is_file_safe(content):
+        return _convert_path_to_data_uri(content)
+    elif isinstance(content, list):
+        return _convert_path_to_data_uri(content[0])
+    return content
+
+
+def respond_system_message(history: list) -> list:  # -> list:
     """Respond to the user message with a system message"""
-
     messages = _format_history_as_messages(history)
-
     response = client.chat.completions.create(
-        model=os.getenv("model", "meta-llama/Llama-3.2-11B-Vision-Instruct"),
         messages=messages,
         max_tokens=2000,
         stream=False,
@@ -96,6 +120,11 @@ def wrangle_like_data(x: gr.LikeData, history) -> DataFrame:
 
 def submit_conversation(dataframe, session_id):
     """ "Submit the conversation to dataset repo"""
+    if dataframe.empty:
+        gr.Info("No messages to submit because the conversation was empty")
+        return (gr.Dataframe(value=None, interactive=False), [])
+
+    dataframe["content"] = dataframe["content"].apply(_process_content)
     conversation_data = {
         "conversation": dataframe.to_dict(orient="records"),
         "timestamp": datetime.now().isoformat(),
