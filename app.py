@@ -19,7 +19,7 @@ client = InferenceClient(
     token=os.getenv("HF_TOKEN"),
     model=(
         os.getenv("MODEL", "meta-llama/Llama-3.2-11B-Vision-Instruct")
-        if not os.getenv("BASE_URL")
+        if BASE_URL is None
         else None
     ),
     base_url=os.getenv("BASE_URL"),
