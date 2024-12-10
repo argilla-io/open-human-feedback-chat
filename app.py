@@ -13,9 +13,11 @@ from feedback import save_feedback
 
 client = InferenceClient(
     token=os.getenv("HF_TOKEN"),
-    model=os.getenv("MODEL", "meta-llama/Llama-3.2-11B-Vision-Instruct")
-    if not os.getenv("BASE_URL")
-    else None,
+    model=(
+        os.getenv("MODEL", "meta-llama/Llama-3.2-11B-Vision-Instruct")
+        if not os.getenv("BASE_URL")
+        else None
+    ),
     base_url=os.getenv("BASE_URL"),
 )
 
@@ -106,10 +108,14 @@ def wrangle_like_data(x: gr.LikeData, history) -> DataFrame:
     output_data = []
     for idx, message in enumerate(history):
         if idx == liked_index:
-            message["metadata"] = {"title": "liked"}
-
-        liked = True if message["metadata"].get("title") == "liked" else False
-        message["liked"] = liked
+            message["metadata"] = {"title": "liked" if x.liked else "disliked"}
+        rating = message["metadata"].get("title")
+        if rating == "liked":
+            message["rating"] = 1
+        elif rating == "disliked":
+            message["rating"] = -1
+        else:
+            message["rating"] = None
 
         output_data.append(
             dict([(k, v) for k, v in message.items() if k != "metadata"])
@@ -136,24 +142,7 @@ def submit_conversation(dataframe, session_id):
     return (gr.Dataframe(value=None, interactive=False), [])
 
 
-with gr.Blocks(
-    css="""
-    button[aria-label="dislike"] {
-        display: none;
-    }
-    button[aria-label="like"] {
-        width: auto;
-    }
-    button[aria-label="like"] svg {
-        display: none;
-    }
-    button[aria-label="like"]::before {
-        content: "⛔️";
-        font-size: 1.5em;
-        display: inline-block;
-    }
-    """
-) as demo:
+with gr.Blocks() as demo:
     ##############################
     # Chatbot
     ##############################
