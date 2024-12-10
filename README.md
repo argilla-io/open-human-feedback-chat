@@ -1,3 +1,13 @@
+---
+title: Open Human Feedback
+emoji: 🤖
+colorFrom: orange
+colorTo: yellow
+sdk: gradio
+sdk_version: 5.7.0
+app_file: app.py
+pinned: false
+---
 # Config
 
 ```
