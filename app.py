@@ -22,7 +22,7 @@ client = InferenceClient(
         if BASE_URL is None
         else None
     ),
-    base_url=os.getenv("BASE_URL"),
+    base_url=BASE_URL,
 )
 
 
