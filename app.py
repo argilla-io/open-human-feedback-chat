@@ -11,6 +11,10 @@ from pandas import DataFrame
 
 from feedback import save_feedback
 
+MODEL = os.getenv("MODEL", "meta-llama/Llama-3.2-11B-Vision-Instruct")
+BASE_URL = os.getenv("BASE_URL")
+BASE_URL = BASE_URL if BASE_URL else None
+
 client = InferenceClient(
     token=os.getenv("HF_TOKEN"),
     model=(
