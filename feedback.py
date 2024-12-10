@@ -1,8 +1,11 @@
 import json
+import os
 import uuid
 from pathlib import Path
 
 from huggingface_hub import CommitScheduler
+
+LANGUAGE = os.environ["LANGUAGE"]
 
 APP_INSTANCE_ID = str(uuid.uuid4())
 
@@ -10,7 +13,7 @@ feedback_file = Path("user_feedback/") / f"data_{APP_INSTANCE_ID}.json"
 feedback_folder = feedback_file.parent
 
 scheduler = CommitScheduler(
-    repo_id="ohp-test-conversation",
+    repo_id=f"feel-fl/open-human-feedback-chat-{LANGUAGE}",
     repo_type="dataset",
     folder_path=feedback_folder,
     path_in_repo="data",
