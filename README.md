@@ -1,7 +1,7 @@
 ---
 title: Open Human Feedback
 emoji: 🤖
-colorFrom: orange
+colorFrom: red
 colorTo: yellow
 sdk: gradio
 sdk_version: 5.7.0
